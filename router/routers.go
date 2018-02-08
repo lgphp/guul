@@ -27,17 +27,17 @@ var (
 	eurekaConf *eureka.EurekaConf
 	routers    []map[string]string
 	ret        *retMessageBody.RetMessage
- 	serviceUrl string
-	res *grequests.Response
+	serviceUrl string
+	res        *grequests.Response
 )
 
 func init() {
 	eurekaConf = eurekaConf.GetEurekaConf()
-	routers =eurekaConf.GuulRouter
+	routers = eurekaConf.GuulRouter
 	trigger.On("refresh-router-conf", func() {
 		log.Println("刷新路由配置")
 		eurekaConf = eurekaConf.GetEurekaConf()
-		routers =eurekaConf.GuulRouter
+		routers = eurekaConf.GuulRouter
 		eurekaConf.ShowAllEurekaConf()
 	})
 	eurekaConf.ShowAllEurekaConf()
@@ -47,9 +47,9 @@ func init() {
 func RunRouter(app *iris.Application, filter filter.Filter) {
 
 	app.Get("/refresh", func(context iris.Context) {
-		    trigger.Fire("refresh-router-conf")
-			trigger.Fire("refresh-router")
-			context.JSON(iris.Map{"message":"OK"})
+		trigger.Fire("refresh-router-conf")
+		trigger.Fire("refresh-router")
+		context.JSON(iris.Map{"message": "OK"})
 	})
 
 	app.Get("/info", func(context iris.Context) {
@@ -70,7 +70,7 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 			for i, v := range Header {
 				newHeaders[i] = v[0]
 			}
-			newHeaders["Access-Control-Allow-Origin"] ="*"   //允许跨域访问
+			newHeaders["Access-Control-Allow-Origin"] = "*" //允许跨域访问
 			path := context.Path()
 			for _, srv := range routers {
 				if strings.HasPrefix(path, string([]rune(srv["path"])[:len(srv["path"])-1])) {
@@ -95,11 +95,10 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 					Headers:        newHeaders,
 					RequestTimeout: 5 * time.Second,
 				}
+				//判断如果mimeheader是否是JSON
 
 				res, _ = grequests.Get(serviceUrl, ro)
-
 				switch {
-
 				case res.StatusCode == 500:
 					ret.Status = 3000211
 					ret.Result.Messsage = SRVINTERNALERROR
@@ -119,7 +118,12 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				case res.Ok:
 					m := make(map[string]interface{})
 					json.Unmarshal(res.Bytes(), &m)
-					context.JSON(m)
+					if m == nil {
+						context.JSON(m)
+					} else {
+						context.Write(res.Bytes())
+					}
+
 				}
 
 			case "POST":
@@ -162,7 +166,11 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				case res.Ok:
 					m := make(map[string]interface{})
 					json.Unmarshal(res.Bytes(), &m)
-					context.JSON(m)
+					if m == nil {
+						context.JSON(m)
+					} else {
+						context.Write(res.Bytes())
+					}
 				}
 
 			default:

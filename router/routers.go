@@ -142,10 +142,7 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				ret := retMessageBody.RetMessage{Result: &retMessageBody.MessageBody{}}
 				ret.Result.Data = map[string]string{}
 				switch {
-				case len(serviceUrl) < 1:
-					ret.Status = 3000211
-					ret.Result.Messsage = SRVNOTFOUND
-					context.JSON(ret)
+
 				case res.StatusCode == 500:
 					ret.Status = 3000211
 					ret.Result.Messsage = SRVINTERNALERROR

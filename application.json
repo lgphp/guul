@@ -1,0 +1,18 @@
+{
+  "hostIPPort": 1508,
+  "serviceName": "cx-guul-service",
+  "eurekaUrl": "http://172.16.10.93:1111/eureka",
+  "guulRouter": [
+    {
+      "path": "/app/*",
+      "srvId": "cx-pre-app"
+    },
+    {
+      "path": "/web/*",
+      "srvId": "CX-PRE-WEB"
+    }
+  ],
+  "needAuthPathPrefix": [
+    "/app/main/api/v1/"
+  ]
+}

@@ -13,13 +13,14 @@ import (
 	"guul/eureka/conf"
 	"github.com/sadlil/go-trigger"
 	"log"
+	"github.com/kataras/iris/middleware/basicauth"
 )
 
 const (
 	SRVNOTFOUND      = "服务不可用,该服务没有注册"
 	SRVINTERNALERROR = "服务内部服务器错误"
 	SRVPATHNOTFOUND  = "路由没有找到"
-	SRVNOPOST        = "服务禁止访问"
+	SRVForbidden        = "服务禁止访问"
 	SRVBAD           = "服务501BAD GETEWAY"
 )
 
@@ -46,10 +47,34 @@ func init() {
 
 func RunRouter(app *iris.Application, filter filter.Filter) {
 
-	app.Get("/refresh", func(context iris.Context) {
+	authConfig := basicauth.Config{
+		Users:   map[string]string{"lgphp": "52cx.com"},
+		Realm:   "Authorization Required", // defaults to "Authorization Required"
+		Expires: time.Duration(30) * time.Minute,
+	}
+	authentication := basicauth.New(authConfig)
+
+
+	app.Get("/refresh", authentication,func(context iris.Context) {
 		trigger.Fire("refresh-router-conf")
+		trigger.Fire("reg-service")
+		trigger.Fire("send-beat")
+		app.RefreshRouter()  //刷新路由
 		trigger.Fire("refresh-router")
 		context.JSON(iris.Map{"message": "OK"})
+	})
+
+	app.OnErrorCode(iris.StatusNotFound, func(context iris.Context) {
+		ret.Status = iris.StatusNotFound
+		ret.Result.Messsage = SRVPATHNOTFOUND
+		ret.Result.Data = make(map[string]string)
+		context.JSON(ret)
+	})
+	app.OnErrorCode(iris.StatusInternalServerError, func(context iris.Context) {
+		ret.Status = iris.StatusInternalServerError
+		ret.Result.Messsage = "GUUL 网关内部服务器错误"
+		ret.Result.Data = make(map[string]string)
+		context.JSON(ret)
 	})
 
 	app.Get("/info", func(context iris.Context) {
@@ -81,7 +106,7 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 
 			ret.Result.Data = map[string]string{}
 			if !strings.HasPrefix(serviceUrl, "http://") {
-				ret.Status = 3000211
+				ret.Status = iris.StatusNotFound
 				ret.Result.Messsage = SRVNOTFOUND
 				context.JSON(ret)
 				return
@@ -99,21 +124,21 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 
 				res, _ = grequests.Get(serviceUrl, ro)
 				switch {
-				case res.StatusCode == 500:
-					ret.Status = 3000211
+				case res.StatusCode == iris.StatusInternalServerError:
+					ret.Status = iris.StatusInternalServerError
 					ret.Result.Messsage = SRVINTERNALERROR
 					context.JSON(ret)
-				case res.StatusCode == 404:
-					ret.Status = 3000211
+				case res.StatusCode == iris.StatusNotFound:
+					ret.Status = iris.StatusNotFound
 					ret.Result.Messsage = SRVPATHNOTFOUND
 					context.JSON(ret)
-				case res.StatusCode == 501:
-					ret.Status = 3000211
+				case res.StatusCode == iris.StatusBadGateway:
+					ret.Status = iris.StatusBadGateway
 					ret.Result.Messsage = SRVBAD
 					context.JSON(ret)
-				case res.StatusCode == 403:
+				case res.StatusCode == iris.StatusForbidden:
 					ret.Status = 3000211
-					ret.Result.Messsage = SRVNOPOST
+					ret.Result.Messsage = SRVForbidden
 					context.JSON(ret)
 				case res.Ok:
 					m := make(map[string]interface{})
@@ -147,21 +172,21 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				ret.Result.Data = map[string]string{}
 				switch {
 
-				case res.StatusCode == 500:
-					ret.Status = 3000211
+				case res.StatusCode == iris.StatusInternalServerError:
+					ret.Status = iris.StatusInternalServerError
 					ret.Result.Messsage = SRVINTERNALERROR
 					context.JSON(ret)
-				case res.StatusCode == 404:
-					ret.Status = 3000211
+				case res.StatusCode == iris.StatusNotFound:
+					ret.Status = iris.StatusNotFound
 					ret.Result.Messsage = SRVPATHNOTFOUND
 					context.JSON(ret)
-				case res.StatusCode == 501:
-					ret.Status = 3000211
+				case res.StatusCode == iris.StatusBadGateway:
+					ret.Status = iris.StatusBadGateway
 					ret.Result.Messsage = SRVBAD
 					context.JSON(ret)
-				case res.StatusCode == 403:
-					ret.Status = 3000211
-					ret.Result.Messsage = SRVNOPOST
+				case res.StatusCode == iris.StatusForbidden:
+					ret.Status = iris.StatusForbidden
+					ret.Result.Messsage = SRVForbidden
 					context.JSON(ret)
 				case res.Ok:
 					m := make(map[string]interface{})

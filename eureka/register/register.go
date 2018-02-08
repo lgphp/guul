@@ -34,8 +34,8 @@ func (this RegisterEureka) SendHeartBeat() {
 	 发送服务心跳
    */
 	beatFlag := false
-	trigger.On("beat", func() {
-
+	trigger.On("send-beat", func() {
+		log.Println("刷新配置注册心跳")
 		beatFlag = true
 
 	})
@@ -92,10 +92,8 @@ func (this RegisterEureka) DoRegisterService() (message string, err error) {
 	/**
 		热更新eureka 配置
 	 */
-	trigger.On("reg", func() {
-
+	trigger.On("reg-service", func() {
 		eurekaConf = eurekaConf.GetEurekaConf()
-		eurekaConf.SetHostIPAddr("192.168.0.1")
 		homePageUrl = strings.Join([]string{"http://", eurekaConf.GetHostIPAddr(), ":",
 			strconv.Itoa(eurekaConf.GetHostIPPort())}, "")
 		statePageUrl = strings.Join([]string{"http://", eurekaConf.GetHostIPAddr(), ":",
@@ -103,8 +101,7 @@ func (this RegisterEureka) DoRegisterService() (message string, err error) {
 		healthPageUrl = strings.Join([]string{"http://", eurekaConf.GetHostIPAddr(), ":",
 			strconv.Itoa(eurekaConf.GetHostIPPort()), "/", "health"}, "")
 		msg, _ := this.DoRegisterService()
-		log.Println(msg)
-		log.Println(eurekaConf.GetHostIPAddr())
+		log.Println("刷新配置" + msg)
 		go this.SendHeartBeat()
 	})
 

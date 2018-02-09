@@ -27,6 +27,8 @@ func (this *EurekaConf) GetEurekaConf() *EurekaConf {
 		log.Println("配置文件没有找到..系统退出", err)
 		os.Exit(0)
 	}
+
+
 	if resp.StatusCode != 200 {
 		log.Println("配置文件无法访问..系统退出", err)
 		os.Exit(1)
@@ -38,13 +40,34 @@ func (this *EurekaConf) GetEurekaConf() *EurekaConf {
 		log.Println("配置文件格式非法..系统退出", err)
 		os.Exit(1)
 	}
-	eurekaConfPtr.HostIPAddr = os.Getenv("SERVER-ADDR")
-	if eurekaConfPtr.HostIPAddr == "" {
-		eurekaConfPtr.HostIPAddr = getHostIP()
+
+	if envIPAddr:=os.Getenv("SERVER-ADDR"); envIPAddr!=""{
+		eurekaConfPtr.HostIPAddr = envIPAddr
+		if eurekaConfPtr.HostIPAddr=="" {
+			eurekaConfPtr.HostIPAddr = getHostIP()
+		}
 	}
+
+	if envHostPort:=os.Getenv("SERVER-PORT");envHostPort!=""{
+		eurekaConfPtr.HostIPPort , err = strconv.Atoi(envHostPort)
+		if err!=nil{
+			eurekaConfPtr.HostIPPort = 8000  //默认端口
+			log.Printf("主机端口:%s不是一个数字",envHostPort)
+		}
+	}
+
+	if envEurekaUrl:=os.Getenv("EUREKA-URL");envEurekaUrl!=""{
+			eurekaConfPtr.EurekaUrl = envEurekaUrl
+	}
+
+
+
 	eurekaConfPtr.InstanceId = strings.Join([]string{getHostIP(),
 		":", strconv.Itoa(eurekaConfPtr.HostIPPort), ":",
 		eurekaConfPtr.ServiceName}, "")
+
+
+
 	return eurekaConfPtr
 }
 
@@ -66,7 +89,13 @@ func getHostIP() string {
 
 		}
 	}
-	return "127.0.0.1"
+	return os.Getenv("HOSTNAME")  //取不到本机IP 取主机名
+}
+
+func (this *EurekaConf) String() string {
+
+	return "HOST:" + this.GetHostIPAddr() + "   PORT:" +
+		strconv.Itoa(this.HostIPPort) + "   EUREKAURL:" + this.EurekaUrl + "   InstanceID" + this.GetInstanceID()
 }
 
 func (this *EurekaConf) ShowAllEurekaConf()  {
@@ -106,9 +135,14 @@ func (this EurekaConf) GetEurekaUrl() string {
 	return this.EurekaUrl
 }
 
-func (this *EurekaConf) SetInstanceID() {
-	this.InstanceId = strings.Join([]string{this.HostIPAddr, ":", strconv.Itoa(this.HostIPPort), ":", this.ServiceName}, "")
-}
 func (this EurekaConf) GetInstanceID() string {
 	return this.InstanceId
+}
+
+func (this EurekaConf) GetGuulRouter() []map[string]string {
+	return this.GuulRouter
+}
+
+func (this EurekaConf) GetNeedAuthPathPrefix()[]string  {
+	return this.NeedAuthPathPrefix
 }

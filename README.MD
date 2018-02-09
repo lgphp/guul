@@ -1,7 +1,7 @@
 #### docker 编译
 
 ```
-docker run --rm -it -v ~/myapp/goapp/src:/usr/src golang:1.9.4-alpine 
+docker run --rm -it -v ~/myapp/goapp/src:/go/src golang:1.9.4-alpine 
 ```
 
 进入容器 编译 

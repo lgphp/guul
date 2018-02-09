@@ -8,16 +8,20 @@ import (
 	"guul/eureka/retMessageBody"
 	"fmt"
 	"encoding/json"
-	 rand2 "crypto/rand"
+	rand2 "crypto/rand"
 	"math/big"
 	"github.com/levigross/grequests"
+	"strconv"
+	"guul/eureka/errorcode"
+	"log"
 )
 
 type Any interface{}
 
 var (
-	eurekaConf *eureka.EurekaConf
-	ret        *retMessageBody.RetMessage
+	eurekaConf    *eureka.EurekaConf
+	ret           *retMessageBody.RetMessage
+	eurekaErrCode errorcode.EurekaErrorCode
 )
 
 func init() {
@@ -35,12 +39,13 @@ func getServiceUrl(serviceName string) {
 	resp, body, errs := req.Get(instanceUrl).Set("Accept", "application/json").End()
 	ret.MU.Lock()
 	if errs != nil {
-		ret.Status = 3000122
-		ret.Result.Messsage = strings.Join([]string{serviceName, "发现失败", fmt.Sprint(errs)}, "")
+		ret.Status = errorcode.SERVICENOTFOUND
+		ret.Result.Messsage = strings.Join([]string{serviceName, eurekaErrCode.ErrMessage(errorcode.SERVICENOTFOUND), fmt.Sprint(errs)}, "")
 	} else {
 		if resp.StatusCode != 200 {
-			ret.Status = 3000122
-			ret.Result.Messsage = strings.Join([]string{serviceName, "发现失败", fmt.Sprint(errs)}, "")
+			ret.Status = errorcode.SERVICENOTFOUND
+			ret.Result.Messsage = strings.Join([]string{serviceName,
+				eurekaErrCode.ErrMessage(errorcode.SERVICENOTFOUND), ":返回状态码为:" + strconv.Itoa(resp.StatusCode), fmt.Sprint(errs)}, "")
 		} else {
 			ret.Status = 0
 			ret.Result.Messsage = map[string]string{}
@@ -67,12 +72,13 @@ func GetServiceBaseUrl(serviceName string) string {
 		serviceBaseUrl := serviceBaseUrls[iUrl.Int64()]
 		return serviceBaseUrl
 	} else {
-		return ""
+		log.Println(eurekaErrCode.ErrMessage(errorcode.SERVICENOTFETCHBASEURL))
+		return "" //没有获取到BaseUrl
 	}
 
 }
 
-func DoService(verb, serviceName, routerPath string, sendData interface{}, headers map[string]string) *retMessageBody.RetMessage {
+func DoService(verb, serviceName, routerPath string, formData map[string]string, jsonData interface{}, headers map[string]string) *retMessageBody.RetMessage {
 	var method = "GET"
 	if verb != "" {
 		method = strings.ToUpper(verb)
@@ -91,18 +97,19 @@ func DoService(verb, serviceName, routerPath string, sendData interface{}, heade
 		}
 		iUrl, _ := rand2.Int(rand2.Reader, big.NewInt(int64(len(serviceBaseUrls))))
 		doServiceUrl := serviceBaseUrls[iUrl.Int64()]
-
 		resp, errs := grequests.Req(method, doServiceUrl+routerPath,
-			&grequests.RequestOptions{JSON: sendData, RequestTimeout: 5 * time.Second, Headers: headers})
-
+			&grequests.RequestOptions{Data: formData, JSON: jsonData, RequestTimeout: 5 * time.Second, Headers: headers})
 		if errs != nil {
-			ret.Status = 3000122
-			ret.Result.Messsage = strings.Join([]string{doServiceUrl + routerPath, "请求失败", fmt.Sprint(errs)}, "")
+			ret.Status = errorcode.SERVICEFETCHFAILURE
+			ret.Result.Messsage = strings.Join([]string{doServiceUrl + routerPath,
+				eurekaErrCode.ErrMessage(errorcode.SERVICEFETCHFAILURE), fmt.Sprint(errs)}, "")
 			ret.Result.Data = map[string]string{}
 		} else {
-			if !resp.Ok {
-				ret.Status = 3000122
-				ret.Result.Messsage = strings.Join([]string{doServiceUrl + routerPath, "请求失败2", fmt.Sprint(errs)}, "")
+			if resp.StatusCode != 200 {
+				ret.Status = errorcode.SERVICEFETCHFAILURE
+				ret.Result.Messsage = strings.Join([]string{doServiceUrl + routerPath,
+					eurekaErrCode.ErrMessage(errorcode.SERVICEFETCHFAILURE), "返回状态码：",
+					strconv.Itoa(resp.StatusCode)}, "")
 				ret.Result.Data = make(map[string]interface{})
 			} else {
 				ret.Status = 0
@@ -111,8 +118,10 @@ func DoService(verb, serviceName, routerPath string, sendData interface{}, heade
 			}
 		}
 	} else {
-		ret.Status = 3000122
-		ret.Result.Messsage = strings.Join([]string{routerPath, "请求失败"}, "")
+		//没有获取到BaseUrl
+		ret.Status = errorcode.SERVICENOTFETCHBASEURL
+		ret.Result.Messsage = strings.Join([]string{routerPath, "请求失败,没有发现服务",
+			eurekaErrCode.ErrMessage(errorcode.SERVICENOTFETCHBASEURL), serviceName}, "")
 		ret.Result.Data = map[string]string{}
 	}
 	return ret

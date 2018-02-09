@@ -70,7 +70,7 @@ func (this RegisterEureka) DoRegisterService() (message string, err error) {
 	/**
 		注册服务
 	 */
-
+	log.Println(eurekaConf)
 	instanceData := this.getInstanceData()
 	req := gorequest.New().Timeout(5 * time.Second) //5秒超时
 	registerUrl := strings.Join([]string{eurekaConf.GetEurekaUrl(), "apps", eurekaConf.GetServiceName()}, "/")

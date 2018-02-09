@@ -14,14 +14,16 @@ import (
 	"github.com/sadlil/go-trigger"
 	"log"
 	"github.com/kataras/iris/middleware/basicauth"
+	"os"
 )
 
 const (
-	SRVNOTFOUND      = "服务不可用,该服务没有注册"
-	SRVINTERNALERROR = "服务内部服务器错误"
-	SRVPATHNOTFOUND  = "路由没有找到"
-	SRVForbidden        = "服务禁止访问"
-	SRVBAD           = "服务501BAD GETEWAY"
+	SRVNOTFOUND      = "GUUL: 调用的服务不可用,该服务没有注册"
+	SRVINTERNALERROR = "GUUL: 调用的服务内部服务器错误"
+	SRVPATHNOTFOUND  = "GUUL: 调用的路由没有找到"
+	SRVForbidden        = "GUUL: 调用的服务禁止访问"
+	SRVBAD           = "GUUL: 调用的服务503BAD GETEWAY"
+	NOTSUPPORTMETHOD ="GUUL: 不支持的请求动作，目前只支持[GET,POST]"
 )
 
 var (
@@ -29,7 +31,7 @@ var (
 	routers    []map[string]string
 	ret        *retMessageBody.RetMessage
 	serviceUrl string
-	res        *grequests.Response
+
 )
 
 func init() {
@@ -47,8 +49,16 @@ func init() {
 
 func RunRouter(app *iris.Application, filter filter.Filter) {
 
+	manageUser:=os.Getenv("MANAGE-USER")
+		if manageUser==""{
+			manageUser="lgphp"
+		}
+	managePass :=os.Getenv("MANAGE-PASS")
+	if managePass==""{
+		managePass = "52cx.comqazxc"
+	}
 	authConfig := basicauth.Config{
-		Users:   map[string]string{"lgphp": "52cx.com"},
+		Users:   map[string]string{manageUser: managePass},
 		Realm:   "Authorization Required", // defaults to "Authorization Required"
 		Expires: time.Duration(30) * time.Minute,
 	}
@@ -121,9 +131,12 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 					RequestTimeout: 5 * time.Second,
 				}
 				//判断如果mimeheader是否是JSON
-
-				res, _ = grequests.Get(serviceUrl, ro)
+				res, err := grequests.Get(serviceUrl, ro)
 				switch {
+				case err !=nil :
+					ret.Status = iris.StatusRequestTimeout
+					ret.Result.Messsage = "请求超时或者其他错误" + err.Error()
+					context.JSON(ret)
 				case res.StatusCode == iris.StatusInternalServerError:
 					ret.Status = iris.StatusInternalServerError
 					ret.Result.Messsage = SRVINTERNALERROR
@@ -148,7 +161,6 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 					} else {
 						context.Write(res.Bytes())
 					}
-
 				}
 
 			case "POST":
@@ -167,11 +179,14 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				if len(string(rawJson)) > 0 {
 					ro.JSON = string(rawJson)
 				}
-				res, _ = grequests.Post(serviceUrl, ro)
+				res, err := grequests.Post(serviceUrl, ro)
 				ret := retMessageBody.RetMessage{Result: &retMessageBody.MessageBody{}}
 				ret.Result.Data = map[string]string{}
 				switch {
-
+				case err !=nil :
+					ret.Status = iris.StatusRequestTimeout
+					ret.Result.Messsage = "GUUL:调用请求超时或者其他错误" + err.Error()
+					context.JSON(ret)
 				case res.StatusCode == iris.StatusInternalServerError:
 					ret.Status = iris.StatusInternalServerError
 					ret.Result.Messsage = SRVINTERNALERROR
@@ -200,8 +215,8 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 
 			default:
 				ret := retMessageBody.RetMessage{Result: &retMessageBody.MessageBody{}}
-				ret.Status = 3000211
-				ret.Result.Messsage = "不支持的请求方法"
+				ret.Status = iris.StatusMethodNotAllowed
+				ret.Result.Messsage =  NOTSUPPORTMETHOD
 				ret.Result.Data = map[string]string{}
 				context.JSON(ret)
 			}

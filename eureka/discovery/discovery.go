@@ -55,10 +55,11 @@ func getServiceUrl(serviceName string) {
 	defer ret.MU.Unlock()
 }
 
+/**
+   多实例情况下，随机选择一个URL
+ */
 func GetServiceBaseUrl(serviceName string) string {
 	getServiceUrl(serviceName)
-	ret.MU.Lock()
-	defer ret.MU.Unlock()
 	var InstanceData = make(map[string]interface{})
 	if ret.Status == 0 {
 		json.Unmarshal(ret.Result.Data.([]byte), &InstanceData)
@@ -83,20 +84,11 @@ func DoService(verb, serviceName, routerPath string, formData map[string]string,
 	if verb != "" {
 		method = strings.ToUpper(verb)
 	}
-	getServiceUrl(serviceName)
+
 	ret.MU.Lock()
 	defer ret.MU.Unlock()
-	var InstanceData = make(map[string]interface{})
-	if ret.Status == 0 {
-		json.Unmarshal(ret.Result.Data.([]byte), &InstanceData)
-		instances := InstanceData["application"].(map[string]interface{})["instance"].([]interface{})
-		serviceBaseUrls := make([]string, len(instances))
-		for i, v := range instances {
-			k := v.(map[string]interface{})
-			serviceBaseUrls[i] = "http://" + k["hostName"].(string) + ":" + fmt.Sprint(k["port"].(map[string]interface{})["$"]) + "/"
-		}
-		iUrl, _ := rand2.Int(rand2.Reader, big.NewInt(int64(len(serviceBaseUrls))))
-		doServiceUrl := serviceBaseUrls[iUrl.Int64()]
+		doServiceUrl := GetServiceBaseUrl(serviceName)
+		if doServiceUrl!=""{
 		resp, errs := grequests.Req(method, doServiceUrl+routerPath,
 			&grequests.RequestOptions{Data: formData, JSON: jsonData, RequestTimeout: 5 * time.Second, Headers: headers})
 		if errs != nil {

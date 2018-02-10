@@ -5,8 +5,6 @@ import (
 	"guul/eureka/discovery"
 	"guul/eureka/conf"
 	"strings"
-	"log"
-	"guul/eureka/errorcode"
 )
 var HasPath = func(path string, prefix []string) (bool) {
 
@@ -44,10 +42,10 @@ func (_ *AuthHandler) PreHandler() func(ctx iris.Context) {
 				"appCommonsUserLogin/token", tokenParam ,nil, authHeader)
 			if ret.Status != 0 {
 				//log.Println(ret.Status, ret.Result.Messsage)
-				ret.Status = 403
+				ret.Status = iris.StatusForbidden
 				ret.Result.Messsage = strings.Join([]string{"GUUL:PreHandler 过滤器-> 令牌无效，鉴权失败   |    API==>", path}, "")
 				ret.Result.Data = map[string]string{}
-				ctx.StatusCode(403) //鉴权失败
+				ctx.StatusCode(iris.StatusForbidden) //鉴权失败
 				return
 			}
 		}

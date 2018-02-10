@@ -89,7 +89,11 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 
 	app.Get("/info", func(context iris.Context) {
 
-		context.JSON(iris.Map{"Description": "GUUL GateWay By GOLang1.92"})
+		context.JSON(iris.Map{"ServiceId":eurekaConf.GetServiceName(),
+			"ServiceName":"GUUL-APP网关",
+			"Author":"luogang@52cx.com",
+			"Date":"2018-02-10",
+			"Language":"Golang1.9.2(Base of iris)"})
 	})
 
 	app.Get("/health", func(context iris.Context) {

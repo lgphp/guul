@@ -17,7 +17,7 @@ func init()  {
 	errorCodeToMsg = map[int64]string{
 		EUREKACONFIGNOTFOUND: "EUREKA配置文件没找到",
 		SERVICENOTFOUND:"服务没找到，可能没有注册",
-		SERVICENOTFETCHBASEURL:"服务baseUrl获取不到",
+		SERVICENOTFETCHBASEURL:"服务baseUrl获取不到,服务可能没有注册",
 		SERVICEFETCHFAILURE : "服务请求失败",
 
 	}

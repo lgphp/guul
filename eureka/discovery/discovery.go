@@ -34,10 +34,10 @@ func init() {
 }
 
 func getServiceUrl(serviceName string) {
+
 	instanceUrl := strings.Join([]string{eurekaConf.GetEurekaUrl(), "apps", strings.ToUpper(serviceName)}, "/")
-	req := gorequest.New().Timeout(5 * time.Second) //5秒超时
+	req := gorequest.New().Timeout(15 * time.Second) //5秒超时
 	resp, body, errs := req.Get(instanceUrl).Set("Accept", "application/json").End()
-	ret.MU.Lock()
 	if errs != nil {
 		ret.Status = errorcode.SERVICENOTFOUND
 		ret.Result.Messsage = strings.Join([]string{serviceName, eurekaErrCode.ErrMessage(errorcode.SERVICENOTFOUND), fmt.Sprint(errs)}, "")
@@ -52,7 +52,7 @@ func getServiceUrl(serviceName string) {
 			ret.Result.Data = []byte(body)
 		}
 	}
-	defer ret.MU.Unlock()
+
 }
 
 /**
@@ -84,9 +84,8 @@ func DoService(verb, serviceName, routerPath string, formData map[string]string,
 	if verb != "" {
 		method = strings.ToUpper(verb)
 	}
-
-	ret.MU.Lock()
-	defer ret.MU.Unlock()
+	//ret.MU.Lock()
+	//defer ret.MU.Unlock()
 		doServiceUrl := GetServiceBaseUrl(serviceName)
 		if doServiceUrl!=""{
 		resp, errs := grequests.Req(method, doServiceUrl+routerPath,

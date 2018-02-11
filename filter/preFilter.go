@@ -6,6 +6,7 @@ import (
 	"guul/eureka/conf"
 	"strings"
 )
+
 var HasPath = func(path string, prefix []string) (bool) {
 
 	for _, v := range prefix {
@@ -20,11 +21,12 @@ type Filter interface {
 	PreHandler() func(ctx iris.Context)
 }
 
-
 var (
 	eurekaConf *eureka.EurekaConf
 )
+
 type AuthHandler struct{}
+
 func (_ *AuthHandler) PreHandler() func(ctx iris.Context) {
 	eurekaConf = eurekaConf.GetEurekaConf()
 	return func(ctx iris.Context) {
@@ -37,9 +39,9 @@ func (_ *AuthHandler) PreHandler() func(ctx iris.Context) {
 			}
 			//ctx.Header("Access-Control-Allow-Origin","*")
 			//authHeader["token"] =ctx.GetHeader("authorization")
-			tokenParam :=  map[string]string{"token": ctx.GetHeader("authorization")}
+			tokenParam := map[string]string{"token": ctx.GetHeader("authorization")}
 			ret := discovery.DoService("POST", "CX-SERVICE-USER",
-				"appCommonsUserLogin/token", tokenParam ,nil, authHeader)
+				"appCommonsUserLogin/token", tokenParam, nil, authHeader)
 			if ret.Status != 0 {
 				//log.Println(ret.Status, ret.Result.Messsage)
 				ret.Status = iris.StatusForbidden
@@ -50,5 +52,7 @@ func (_ *AuthHandler) PreHandler() func(ctx iris.Context) {
 			}
 		}
 		ctx.Next()
+		//return
+
 	}
 }

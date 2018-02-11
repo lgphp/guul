@@ -9,8 +9,9 @@ import (
 	"github.com/levigross/grequests"
 )
 
+// eureka Config Url
 const CONFIGURL = "http://172.17.10.95:1505/statics/guul-service/application.json"
-
+//const CONFIGURL = "http://172.16.10.83:10090/application.json"
 type EurekaConf struct {
 	HostIPAddr         string              `"主机地址"`
 	HostIPPort         int

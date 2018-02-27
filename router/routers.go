@@ -15,7 +15,6 @@ import (
 	"os"
 	"guul/eureka/errorcode"
 	"guul/util"
-	"io/ioutil"
 )
 
 const (
@@ -108,11 +107,7 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 	for _, v := range routers {
 		app.Any(v["path"], filter.PreHandler(), func(ctx iris.Context) {
 			method := ctx.Method()
-			Header := ctx.Request().Header
-			newHeaders := make(map[string]string)
-			for i, v := range Header {
-				newHeaders[i] = v[0]
-			}
+			newHeaders := util.GetHeaders(ctx)
 			path := ctx.Path()
 			serviceUrl := "" //服务的URL
 			serviceId := ""  //转发服务的id
@@ -124,7 +119,6 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 			}
 
 			ret.Result.Data = map[string]string{}
-			//if !strings.HasPrefix(serviceUrl, "http://") {
 			if serviceUrl == "" {
 				ret.Status = iris.StatusNotFound
 				ret.Result.Messsage = "服务:" + serviceId + "   " + SRVNOTFOUND
@@ -135,8 +129,6 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 			//转发请求
 
 			params := ctx.URLParams()
-
-
 			ro := &grequests.RequestOptions{
 				Params:         params,
 				Headers:        newHeaders,
@@ -153,10 +145,10 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 					RequestBody:    ctx.Request().Body,
 					RequestTimeout: REQUESTTIMEOUT,
 				}
-				rawJson, _ := ioutil.ReadAll(ctx.Request().Body)
-				if len(string(rawJson)) > 0 {
-					ro.JSON = string(rawJson)
-				}
+				//rawJson, _ := ioutil.ReadAll(ctx.Request().Body)
+				//if len(string(rawJson)) > 0 {
+				//	ro.JSON = string(rawJson)
+				//}
 			default:
 				ret := retMessageBody.RetMessage{Result: &retMessageBody.MessageBody{}}
 				ret.Status = iris.StatusMethodNotAllowed
@@ -196,126 +188,6 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				ret.Result.Messsage = errorcode.EurekaErrorCode{}.ErrMessage(errorcode.SERVICEANYERROR)
 				ctx.JSON(ret)
 			}
-
-			/*
-			switch method {
-			case "GET":
-				params := ctx.URLParams()
-				ro := &grequests.RequestOptions{
-					Params:         params,
-					Headers:        newHeaders,
-					RequestTimeout: 20 * time.Second,
-				}
-
-				res, err := grequests.Get(serviceUrl, ro)
-				switch {
-				case err != nil:
-					ret.Status = iris.StatusRequestTimeout
-					ret.Result.Messsage = "请求超时或者其他错误" + err.Error()
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusInternalServerError:
-					ret.Status = iris.StatusInternalServerError
-					ret.Result.Messsage = SRVINTERNALERROR
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusNotFound:
-					ret.Status = iris.StatusNotFound
-					ret.Result.Messsage = SRVPATHNOTFOUND
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusBadGateway:
-					ret.Status = iris.StatusBadGateway
-					ret.Result.Messsage = SRVBAD
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusForbidden:
-					ret.Status = iris.StatusForbidden
-					ret.Result.Messsage = SRVForbidden
-					ctx.JSON(ret)
-				case res.Ok:
-					contentType := strings.ToLower(res.Header.Get("Content-Type"))
-					log.Printf("contentType:%s...method:%s", contentType, method)
-					switch  contentType {
-					case "application/json;charset=utf-8":
-						m := make(map[string]interface{})
-						json.Unmarshal(res.Bytes(), &m)
-						ctx.JSON(m)
-					case "text/html":
-						ctx.Text(res.String())
-					case "image/png":
-						ctx.Write(res.Bytes())
-					default:
-						ret.Status = iris.StatusUnsupportedMediaType
-						ret.Result.Messsage = "不支持的返回格式"
-						ctx.JSON(ret)
-					}
-
-				}
-
-			case "POST":
-				params := ctx.URLParams()
-				postdata := make(map[string]string)
-				for u, c := range ctx.FormValues() {
-					postdata[u] = c[0]
-				}
-				ro := &grequests.RequestOptions{
-					Params:         params,
-					Headers:        newHeaders,
-					Data:           postdata,
-					RequestBody: ctx.Request().Body,
-					RequestTimeout: 20 * time.Second,
-				}
-				//rawJson, _ := ioutil.ReadAll(ctx.Request().Body)
-				//if len(string(rawJson)) > 0 {
-				//	ro.JSON = string(rawJson)
-				//}
-				res, err := grequests.Post(serviceUrl, ro)
-				ret := retMessageBody.RetMessage{Result: &retMessageBody.MessageBody{}}
-				ret.Result.Data = map[string]string{}
-				switch {
-				case err != nil:
-					ret.Status = iris.StatusRequestTimeout
-					ret.Result.Messsage = "GUUL:调用请求超时或者其他错误" + err.Error()
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusInternalServerError:
-					ret.Status = iris.StatusInternalServerError
-					ret.Result.Messsage = SRVINTERNALERROR
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusNotFound:
-					ret.Status = iris.StatusNotFound
-					ret.Result.Messsage = SRVPATHNOTFOUND
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusBadGateway:
-					ret.Status = iris.StatusBadGateway
-					ret.Result.Messsage = SRVBAD
-					ctx.JSON(ret)
-				case res.StatusCode == iris.StatusForbidden:
-					ret.Status = iris.StatusForbidden
-					ret.Result.Messsage = SRVForbidden
-					ctx.JSON(ret)
-				case res.Ok:
-					contentType := strings.ToLower(res.Header.Get("Content-Type"))
-					log.Printf("contentType:%s...method:%s", contentType, method)
-					switch  contentType {
-					case "application/json;charset=utf-8":
-						m := make(map[string]interface{})
-						json.Unmarshal(res.Bytes(), &m)
-						ctx.JSON(m)
-					case "text/html":
-						ctx.Text(res.String())
-					case "image/png":
-						ctx.Write(res.Bytes())
-					default:
-						ret.Status = iris.StatusUnsupportedMediaType
-						ret.Result.Messsage = "不支持的返回格式"
-						ctx.JSON(ret)
-					}
-				}
-			default:
-				ret := retMessageBody.RetMessage{Result: &retMessageBody.MessageBody{}}
-				ret.Status = iris.StatusMethodNotAllowed
-				ret.Result.Messsage = NOTSUPPORTMETHOD
-				ret.Result.Data = map[string]string{}
-				ctx.JSON(ret)
-			}
-			*/
 		})
 	}
 

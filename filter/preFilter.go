@@ -34,6 +34,13 @@ func (_ *AuthHandler) PreHandler() func(ctx iris.Context) {
 		path := ctx.Path()
 		if HasPath(path, eurekaConf.NeedAuthPathPrefix) {
 			authHeader := util.GetHeaders(ctx)
+
+
+			//Header := ctx.Request().Header
+			//authHeader := make(map[string]string)
+			//for i, v := range Header {
+			//	authHeader[i] = v[0]
+			//}
 			tokenParam := map[string]string{"token": ctx.GetHeader("authorization")}
 			ret := discovery.DoService("POST", "CX-SERVICE-USER",
 				"appCommonsUserLogin/token", tokenParam, nil, authHeader)

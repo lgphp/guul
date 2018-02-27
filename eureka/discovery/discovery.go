@@ -3,7 +3,6 @@ package discovery
 import (
 	"guul/eureka/conf"
 	"strings"
-	"time"
 	"guul/eureka/retMessageBody"
 	"fmt"
 	"encoding/json"

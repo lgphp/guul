@@ -2,13 +2,14 @@ package eureka
 
 import (
 	"guul/eureka/conf"
-	"github.com/parnurzeal/gorequest"
 	"fmt"
 	"time"
 	"strconv"
 	"strings"
 	"log"
 	"github.com/sadlil/go-trigger"
+	"github.com/levigross/grequests"
+	"github.com/kataras/iris/context"
 )
 
 type RegisterEureka struct {
@@ -39,11 +40,10 @@ func (this RegisterEureka) SendHeartBeat() {
 		beatFlag = true
 
 	})
-	req := gorequest.New().Timeout(5 * time.Second) //5秒超时
 	beatUrl := strings.Join([]string{eurekaConf.GetEurekaUrl(), "apps", eurekaConf.GetServiceName(),
 		eurekaConf.GetInstanceID()}, "/")
 	for {
-		resp, _, errs := req.Put(beatUrl).Send(nil).End()
+		resp, errs := grequests.Put(beatUrl, &grequests.RequestOptions{RequestTimeout: eureka.REQUESTTIMEOUT})
 		if errs != nil {
 			log.Println("发送服务心跳失败:", errs)
 			msg, _ := this.DoRegisterService() //重试注册服务
@@ -51,7 +51,7 @@ func (this RegisterEureka) SendHeartBeat() {
 			//break
 			//os.Exit(0) //退出系统
 		} else {
-			if resp.StatusCode != 200 {
+			if !resp.Ok {
 				log.Println("发送服务心跳失败:", resp.StatusCode)
 				msg, _ := this.DoRegisterService() //重试注册服务
 				log.Println(msg)
@@ -72,17 +72,18 @@ func (this RegisterEureka) DoRegisterService() (message string, err error) {
 	 */
 	log.Println(eurekaConf)
 	instanceData := this.getInstanceData()
-	req := gorequest.New().Timeout(5 * time.Second) //5秒超时
 	registerUrl := strings.Join([]string{eurekaConf.GetEurekaUrl(), "apps", eurekaConf.GetServiceName()}, "/")
-	resp, _, errs := req.Post(registerUrl).Set("Content-Type", "application/json").Send(instanceData).End()
+	resp, errs := grequests.Post(registerUrl,
+		&grequests.RequestOptions{JSON: instanceData,
+			Headers: map[string]string{"Content-Type": context.ContentJSONHeaderValue},
+			RequestTimeout: eureka.REQUESTTIMEOUT})
 	message = "服务注册成功"
 	if errs != nil {
 		err = fmt.Errorf("%s", errs)
 		message = "服务注册失败" + fmt.Sprint(err)
 	} else {
-		switch resp.StatusCode {
-		case 200, 204:
-		default:
+
+		if !resp.Ok {
 			err = fmt.Errorf("%s", resp.StatusCode)
 			message = "服务注册失败" + fmt.Sprint(err)
 		}
@@ -136,8 +137,8 @@ func (this RegisterEureka) getInstanceData() (instanceData string) {
                     "countryId": 1,
                     "dataCenterInfo": ` + dataCenterInfo + `,
                     "leaseInfo": {
-                        "renewalIntervalInSecs": 30,
-                        "durationInSecs": 10,
+                        "renewalIntervalInSecs": ` + strconv.Itoa(eureka.EurekaRenewalIntervalInSecs) + `,
+                        "durationInSecs": ` + strconv.Itoa(eureka.EurekaDurationInSecs) + `,
                         "registrationTimestamp": ` + fmt.Sprintf("%d", time.Now().UnixNano()/1000000) + `,
                         "lastRenewalTimestamp": ` + fmt.Sprintf("%d", time.Now().UnixNano()/1000000) + `,
                         "evictionTimestamp": 0,

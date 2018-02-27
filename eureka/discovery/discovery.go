@@ -3,7 +3,6 @@ package discovery
 import (
 	"guul/eureka/conf"
 	"strings"
-	"github.com/parnurzeal/gorequest"
 	"time"
 	"guul/eureka/retMessageBody"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	"strconv"
 	"guul/eureka/errorcode"
 	"log"
+	"github.com/kataras/iris/context"
 )
 
 type Any interface{}
@@ -36,20 +36,25 @@ func init() {
 func getServiceUrl(serviceName string) {
 
 	instanceUrl := strings.Join([]string{eurekaConf.GetEurekaUrl(), "apps", strings.ToUpper(serviceName)}, "/")
-	req := gorequest.New().Timeout(15 * time.Second) //5秒超时
-	resp, body, errs := req.Get(instanceUrl).Set("Accept", "application/json").End()
+	//req := gorequest.New().Timeout(15 * time.Second) //5秒超时
+	//resp, body, errs := req.Get(instanceUrl).Set("Accept", "application/json").End()
+
+
+	resp, errs := grequests.Get(instanceUrl,
+		&grequests.RequestOptions{Headers: map[string]string{"Accept": context.ContentJSONHeaderValue},
+			RequestTimeout: eureka.REQUESTTIMEOUT})
 	if errs != nil {
 		ret.Status = errorcode.SERVICENOTFOUND
 		ret.Result.Messsage = strings.Join([]string{serviceName, eurekaErrCode.ErrMessage(errorcode.SERVICENOTFOUND), fmt.Sprint(errs)}, "")
 	} else {
-		if resp.StatusCode != 200 {
+		if !resp.Ok {
 			ret.Status = errorcode.SERVICENOTFOUND
 			ret.Result.Messsage = strings.Join([]string{serviceName,
 				eurekaErrCode.ErrMessage(errorcode.SERVICENOTFOUND), ":返回状态码为:" + strconv.Itoa(resp.StatusCode), fmt.Sprint(errs)}, "")
 		} else {
 			ret.Status = 0
 			ret.Result.Messsage = map[string]string{}
-			ret.Result.Data = []byte(body)
+			ret.Result.Data = resp.Bytes() // []byte(body)
 		}
 	}
 
@@ -86,10 +91,10 @@ func DoService(verb, serviceName, routerPath string, formData map[string]string,
 	}
 	//ret.MU.Lock()
 	//defer ret.MU.Unlock()
-		doServiceUrl := GetServiceBaseUrl(serviceName)
-		if doServiceUrl!=""{
+	doServiceUrl := GetServiceBaseUrl(serviceName)
+	if doServiceUrl != "" {
 		resp, errs := grequests.Req(method, doServiceUrl+routerPath,
-			&grequests.RequestOptions{Data: formData, JSON: jsonData, RequestTimeout: 5 * time.Second, Headers: headers})
+			&grequests.RequestOptions{Data: formData, JSON: jsonData, RequestTimeout: eureka.REQUESTTIMEOUT, Headers: headers})
 		if errs != nil {
 			ret.Status = errorcode.SERVICEFETCHFAILURE
 			ret.Result.Messsage = strings.Join([]string{doServiceUrl + routerPath,

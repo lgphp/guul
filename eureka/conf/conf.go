@@ -7,11 +7,12 @@ import (
 	"os"
 	"net"
 	"github.com/levigross/grequests"
+	"time"
 )
 
 // eureka Config Url
-const CONFIGURL = "http://172.17.10.95:1505/statics/guul-service/application.json"
-//const CONFIGURL = "http://172.16.10.83:10090/application.json"
+//const CONFIGURL = "http://172.17.10.95:1505/statics/guul-service/application.json"
+var CONFIGURL = "http://172.17.10.95:1505/statics/guul-service/application.json"//"http://172.16.10.83:10090/application.json"
 type EurekaConf struct {
 	HostIPAddr         string              `"主机地址"`
 	HostIPPort         int
@@ -23,7 +24,12 @@ type EurekaConf struct {
 }
 
 func (this *EurekaConf) GetEurekaConf() *EurekaConf {
-	resp,err :=grequests.Get(CONFIGURL,nil)
+	ro  := new(grequests.RequestOptions)
+	ro.DialTimeout = 10*time.Second
+	if confingurl:=os.Getenv("CONFING-URL");confingurl!=""{
+		CONFIGURL = confingurl
+	}
+	resp,err :=grequests.Get(CONFIGURL,ro)
 	if err != nil {
 		log.Println("配置文件没有找到..系统退出", err)
 		os.Exit(0)
@@ -95,8 +101,8 @@ func getHostIP() string {
 
 func (this *EurekaConf) String() string {
 
-	return "HOST:" + this.GetHostIPAddr() + "   PORT:" +
-		strconv.Itoa(this.HostIPPort) + "   EUREKAURL:" + this.EurekaUrl + "   InstanceID" + this.GetInstanceID()
+	return "HOST: " + this.GetHostIPAddr() + "   PORT: " +
+		strconv.Itoa(this.HostIPPort) + "   EUREKAURL: " + this.EurekaUrl + "   InstanceID: " + this.GetInstanceID()
 }
 
 func (this *EurekaConf) ShowAllEurekaConf()  {

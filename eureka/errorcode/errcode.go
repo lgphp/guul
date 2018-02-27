@@ -6,7 +6,7 @@ const (
 	SERVICENOTFETCHBASEURL = 8000003
 	SERVICEFETCHFAILURE = 8000004
 	SERVICEANYERROR = 8000009
-
+	UNKNOWERROR = 8000010
 )
 
 var errorCodeToMsg map[int64]string
@@ -20,7 +20,7 @@ func init()  {
 		SERVICENOTFETCHBASEURL:"服务baseUrl获取不到,服务可能没有注册",
 		SERVICEFETCHFAILURE : "服务请求失败",
 		SERVICEANYERROR:"服务发生其他未知错误",
-
+		UNKNOWERROR:"GUUL:网关发生未知错误",
 	}
 }
 func (this EurekaErrorCode) ErrMessage( errCode int64 )string  {

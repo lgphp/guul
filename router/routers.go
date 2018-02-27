@@ -15,6 +15,7 @@ import (
 	"os"
 	"guul/eureka/errorcode"
 	"guul/util"
+	"io/ioutil"
 )
 
 const (
@@ -43,7 +44,8 @@ func init() {
 		eurekaConf.ShowAllEurekaConf()
 	})
 	eurekaConf.ShowAllEurekaConf()
-	ret = &retMessageBody.RetMessage{Status: 20001, Result: &retMessageBody.MessageBody{Messsage: "未知错误"}}
+	ret = &retMessageBody.RetMessage{Status: errorcode.UNKNOWERROR,
+	Result: &retMessageBody.MessageBody{Messsage: errorcode.EurekaErrorCode{}.ErrMessage(errorcode.UNKNOWERROR)}}
 }
 
 func RunRouter(app *iris.Application, filter filter.Filter) {
@@ -138,17 +140,18 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 			case "GET":
 			case "POST":
 				postdata := util.GetFormValues(ctx)
+
 				ro = &grequests.RequestOptions{
 					Params:         params,
 					Headers:        newHeaders,
 					Data:           postdata,
-					RequestBody:    ctx.Request().Body,
+					//RequestBody:    ctx.Request().Body,
 					RequestTimeout: REQUESTTIMEOUT,
 				}
-				//rawJson, _ := ioutil.ReadAll(ctx.Request().Body)
-				//if len(string(rawJson)) > 0 {
-				//	ro.JSON = string(rawJson)
-				//}
+				rawJson, _ := ioutil.ReadAll(ctx.Request().Body)
+				if len(string(rawJson)) > 0 {
+					ro.JSON = string(rawJson)
+				}
 			default:
 				ret := retMessageBody.RetMessage{Result: &retMessageBody.MessageBody{}}
 				ret.Status = iris.StatusMethodNotAllowed

@@ -16,6 +16,7 @@ import (
 	"guul/eureka/errorcode"
 	"guul/util"
 	"io/ioutil"
+
 )
 
 const (
@@ -50,10 +51,16 @@ func init() {
 
 func RunRouter(app *iris.Application, filter filter.Filter) {
 
-	app.Use(func(ctx iris.Context) {
-		ctx.Header("Access-Control-Allow-Origin", "*") //网关允许跨域访问
-		ctx.Next()
-	})
+
+
+
+
+
+
+	//app.Use(func(ctx iris.Context) {
+	//	ctx.Header("Access-Control-Allow-Origin", "*") //网关允许跨域访问
+	//	ctx.Next()
+	//})
 
 	manageUser := os.Getenv("MANAGE-USER")
 	if manageUser == "" {
@@ -140,7 +147,6 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 			case "GET":
 			case "POST":
 				postdata := util.GetFormValues(ctx)
-
 				ro = &grequests.RequestOptions{
 					Params:         params,
 					Headers:        newHeaders,
@@ -183,6 +189,8 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				ret.Status = iris.StatusForbidden
 				ret.Result.Messsage = SRVForbidden
 				ctx.JSON(ret)
+
+				//ctx.JSON(ret,context.JSON{Indent:"   " , Prefix:"" , StreamingJSON:false})
 			case res.Ok:
 				ctx.Header("Content-Type", res.Header.Get("Content-Type"))
 				ctx.Write(res.Bytes())
@@ -191,6 +199,8 @@ func RunRouter(app *iris.Application, filter filter.Filter) {
 				ret.Result.Messsage = errorcode.EurekaErrorCode{}.ErrMessage(errorcode.SERVICEANYERROR)
 				ctx.JSON(ret)
 			}
+
+
 		})
 	}
 

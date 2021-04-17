@@ -1,7 +1,7 @@
 {
   "hostIPPort": 1508,
   "serviceName": "cx-guul-service",
-  "eurekaUrl": "http://172.16.10.93:1111/eureka",
+  "eurekaUrl": "http://192.168.74.182:8701/eureka",
   "guulRouter": [
     {
       "path": "/app/*",

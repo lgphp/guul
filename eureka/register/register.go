@@ -10,6 +10,7 @@ import (
 	"github.com/sadlil/go-trigger"
 	"github.com/levigross/grequests"
 	"github.com/kataras/iris/context"
+
 )
 
 type RegisterEureka struct {
@@ -73,17 +74,20 @@ func (this RegisterEureka) DoRegisterService() (message string, err error) {
 	log.Println(eurekaConf)
 	instanceData := this.getInstanceData()
 	registerUrl := strings.Join([]string{eurekaConf.GetEurekaUrl(), "apps", eurekaConf.GetServiceName()}, "/")
+	fmt.Println(instanceData)
 	resp, errs := grequests.Post(registerUrl,
 		&grequests.RequestOptions{JSON: instanceData,
 			Headers: map[string]string{"Content-Type": context.ContentJSONHeaderValue},
 			RequestTimeout: eureka.REQUESTTIMEOUT})
 	message = "服务注册成功"
 	if errs != nil {
+
 		err = fmt.Errorf("%s", errs)
 		message = "服务注册失败" + fmt.Sprint(err)
 	} else {
 
 		if !resp.Ok {
+			fmt.Println(resp)
 			err = fmt.Errorf("%s", resp.StatusCode)
 			message = "服务注册失败" + fmt.Sprint(err)
 		}

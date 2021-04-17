@@ -12,7 +12,7 @@ import (
 
 // eureka Config Url
 //const CONFIGURL = "http://172.17.10.95:1505/statics/guul-service/application.json"
-var CONFIGURL = "http://172.17.10.95:1505/statics/guul-service/application.json"//"http://172.16.10.83:10090/application.json"
+var CONFIGURL = "http://192.168.74.218:8010/application.json"//"http://172.16.10.83:10090/application.json"
 type EurekaConf struct {
 	HostIPAddr         string              `"主机地址"`
 	HostIPPort         int
@@ -67,8 +67,6 @@ func (this *EurekaConf) GetEurekaConf() *EurekaConf {
 			eurekaConfPtr.EurekaUrl = envEurekaUrl
 	}
 
-
-
 	eurekaConfPtr.InstanceId = strings.Join([]string{getHostIP(),
 		":", strconv.Itoa(eurekaConfPtr.HostIPPort), ":",
 		eurekaConfPtr.ServiceName}, "")
@@ -117,7 +115,8 @@ func (this *EurekaConf) SetHostIPAddr(ipAddr string) {
 }
 
 func (this EurekaConf) GetHostIPAddr() string {
-	return this.HostIPAddr
+	return "192.168.74.218"
+	//return this.HostIPAddr
 }
 
 func (this *EurekaConf) SetHostIPPOrt(port int) {

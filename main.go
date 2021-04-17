@@ -7,6 +7,7 @@ import (
 	"log"
 	"guul/eureka/register"
 	"github.com/sadlil/go-trigger"
+	"github.com/iris-contrib/middleware/cors"
 	eurekaConf "guul/eureka/conf"
 	"strconv"
 	"runtime"
@@ -16,15 +17,20 @@ import (
 func main()  {
 	runtime.GOMAXPROCS(runtime.NumCPU()) //  使用所有的机器核心
 	app := iris.New()
+	//允许跨域访问
+	cors.AllowAll()
+
 	trigger.On("refresh-router" , func() {
 		log.Println("刷新路由")
 		router.RunRouter(app,new(filter.AuthHandler))
 	})
+
+
 	router.RunRouter(app,new(filter.AuthHandler))
 	eurekaRegSrv :=new (eureka.RegisterEureka)
 	regmessage, _ := eurekaRegSrv.DoRegisterService()
 	log.Println(regmessage)
 	go eurekaRegSrv.SendHeartBeat() //发送心跳
 	serverPort := new(eurekaConf.EurekaConf).GetEurekaConf().GetHostIPPort()
-	app.Run(iris.Addr(":"+strconv.Itoa(serverPort)) ,iris.WithoutServerError(iris.ErrServerClosed))
+	app.Run(iris.Addr(":"+strconv.Itoa(serverPort)) , iris.WithoutServerError(iris.ErrServerClosed))
 }

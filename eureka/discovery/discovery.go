@@ -33,12 +33,7 @@ func init() {
 }
 
 func getServiceUrl(serviceName string) {
-
 	instanceUrl := strings.Join([]string{eurekaConf.GetEurekaUrl(), "apps", strings.ToUpper(serviceName)}, "/")
-	//req := gorequest.New().Timeout(15 * time.Second) //5秒超时
-	//resp, body, errs := req.Get(instanceUrl).Set("Accept", "application/json").End()
-
-
 	resp, errs := grequests.Get(instanceUrl,
 		&grequests.RequestOptions{Headers: map[string]string{"Accept": context.ContentJSONHeaderValue},
 			RequestTimeout: eureka.REQUESTTIMEOUT})
@@ -88,8 +83,6 @@ func DoService(verb, serviceName, routerPath string, formData map[string]string,
 	if verb != "" {
 		method = strings.ToUpper(verb)
 	}
-	//ret.MU.Lock()
-	//defer ret.MU.Unlock()
 	doServiceUrl := GetServiceBaseUrl(serviceName)
 	if doServiceUrl != "" {
 		resp, errs := grequests.Req(method, doServiceUrl+routerPath,
